@@ -1,5 +1,6 @@
 import aiohttp
 import json
+import websockets
 
 
 async def fetch(session, url):
@@ -25,3 +26,9 @@ async def post_request(chat_id, game_id):
         text_response = await response.json()
         print(text_response)
         return text_response
+
+
+async def connect_to_server(chat_id):
+    async with websockets.connect(f"wss://bld-team.tech/prices/api/ws?chatId={chat_id}") as websocket:
+        response = await websocket.recv()
+        print(f"Received: {response}")

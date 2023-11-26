@@ -7,11 +7,13 @@ import aiohttp
 import text
 import models
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+
 router = Router()
 
 
 @router.message(Command("start"))
 async def start_handler(msg: Message):
+    await models.connect_to_server(msg.from_user.id)
     await msg.answer(text.hello_text_message.format(username=msg.from_user.first_name))
 
 
@@ -76,10 +78,38 @@ async def callback_subscribe_handler(callback_query: types.CallbackQuery):
 
     try:
         subscription_data = await models.post_request(str(callback_query.from_user.id), int(game_id))
+        print("-->" + f"{subscription_data}")
+
         await callback_query.message.answer("Рассылка успешно включена! ✅")
         await callback_query.answer()
+
+        with open('user_ids.txt', 'r') as file:
+            if str(callback_query.from_user.id) not in file.read():
+                with open('user_ids.txt', 'a') as file_append:
+                    file_append.write(str(callback_query.from_user.id) + '\n')
+
     except aiohttp.ClientError or json.JSONDecodeError as error:
-        print(f"An error occurred: {error}")
+        print(f"Отловлена ошибка: {error}")
         await callback_query.message.answer("Произошла ошибка при включении рассылки! ❌")
+
     finally:
         await callback_query.answer()
+
+
+@router.message()
+async def update_user_message(msg: Message):
+    async with aiohttp.ClientSession() as client_session:
+        with open('user_ids.txt', 'r') as file:
+            if str(msg.from_user.id) in file.read():
+                update_user_game_list = await models.connect_to_server(msg.from_user.id)
+                if update_user_game_list:
+                    update_message_text = "🕰️ Обновлённый список ваших товаров: \n"
+                    for game in update_user_game_list:
+                        update_message_text += f"Игра: {game['name']}\n"
+                        for market in game['markets']:
+                            update_message_text += f"Маркетплейс: {market['name']}, Цена: {market['price']} {market['currency']}\n"
+                        await msg.answer(update_message_text)
+
+
+
+
