@@ -30,7 +30,7 @@ async def message_handler(msg: Message):
             game_choice_keyboard.add(types.InlineKeyboardButton(
                 text=str(game['name']), callback_data=str(game['id'])))
         game_choice_keyboard.adjust(1)
-        await msg.answer("🕹️ Выберите нужную для вас игру:", reply_markup=game_choice_keyboard.as_markup())
+        await msg.answer("<b>🕹️ Выберите нужную для вас игру:</b>", reply_markup=game_choice_keyboard.as_markup())
 
 
 @router.callback_query()
@@ -43,19 +43,20 @@ async def callback_handler(callback_query: types.CallbackQuery):
 
         async with (aiohttp.ClientSession() as client_session):
             try:
-                prices_user_message = "" + text.games_prices_message
+                prices_user_message = "<b>" + text.games_prices_message + "</b>"
                 game_data = await models.get_request(int(game_id))
                 print(game_data)
                 game_data = game_data[0]
                 for market in game_data['markets']:
                     if market['price'] is not None:
-                        prices_user_message = prices_user_message.format(
+                        prices_user_message = "<b>" + prices_user_message.format(
                             game_name=game_data[
-                                'name']) + (f"🕹️ {market['name']}: {'{:.2f}'.format(round(market['price'] / 100, 2))}"
-                                            f"{market['currency']}\n")
+                                'name']) + "</b>" + (
+                                                  f"🛒 <b>{market['name']}: {'{:.2f}'.format(round(market['price'] / 100, 2))}"
+                                                  f"{market['currency']}\n</b>")
                     else:
-                        prices_user_message = prices_user_message.format(
-                            game_name=game_data['name']) + f"{market['name']}: {'Бесплатно'}\n"
+                        prices_user_message = "<b>" + prices_user_message.format(
+                            game_name=game_data['name']) + "</b>" + f"🛒 <b>{market['name']}: {'Бесплатно'}\n </b>"
 
                 subscription_on = [
                     [InlineKeyboardButton(text="✉️ Подписаться на уведомления!",
@@ -68,8 +69,8 @@ async def callback_handler(callback_query: types.CallbackQuery):
                 await callback_query.answer()
 
             except aiohttp.ContentTypeError:
-                await callback_query.message.answer("❌ Произошла ошибка при получении данных ❌\n"
-                                                    "Скорее всего игра недоступна в вашем регионе! 😭")
+                await callback_query.message.answer("❌ <b>Произошла ошибка при получении данных ❌\n"
+                                                    "Скорее всего игра недоступна в вашем регионе!</b> 😭")
 
 
 @router.callback_query()
@@ -80,7 +81,7 @@ async def callback_subscribe_handler(callback_query: types.CallbackQuery):
         subscription_data = await models.post_request(str(callback_query.from_user.id), int(game_id))
         print("-->" + f"{subscription_data}")
 
-        await callback_query.message.answer("Рассылка успешно включена! ✅")
+        await callback_query.message.answer("<b>Рассылка успешно включена! ✅</b>")
         await callback_query.answer()
 
         with open('user_ids.txt', 'r') as file:
@@ -90,7 +91,7 @@ async def callback_subscribe_handler(callback_query: types.CallbackQuery):
 
     except aiohttp.ClientError or json.JSONDecodeError as error:
         print(f"Отловлена ошибка: {error}")
-        await callback_query.message.answer("Произошла ошибка при включении рассылки! ❌")
+        await callback_query.message.answer("<b>Произошла ошибка при включении рассылки! ❌</b>")
 
     finally:
         await callback_query.answer()
@@ -105,11 +106,7 @@ async def update_user_message(msg: Message):
                 if update_user_game_list:
                     update_message_text = "🕰️ Обновлённый список ваших товаров: \n"
                     for game in update_user_game_list:
-                        update_message_text += f"Игра: {game['name']}\n"
+                        update_message_text += f"<b>Игра: <u>{game['name']}</u></b>\n"
                         for market in game['markets']:
-                            update_message_text += f"Маркетплейс: {market['name']}, Цена: {market['price']} {market['currency']}\n"
+                            update_message_text += f"<b>Маркетплейс: {market['name']}, Цена: {market['price']} {market['currency']}</b>\n"
                         await msg.answer(update_message_text)
-
-
-
-
