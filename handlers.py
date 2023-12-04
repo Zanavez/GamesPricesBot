@@ -9,9 +9,10 @@ import text
 import models
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from bot import event_loop
-
 router = Router()
+PAGE_SIZE = 5  # Количество игр на одной странице
+current_page = 0  # Текущая страница
+game_price_request = []
 
 
 @router.message(Command("start"))
@@ -21,24 +22,61 @@ async def start_handler(msg: Message):
 
 @router.message()
 async def message_handler(msg: Message):
+    global current_page, game_price_request
+    current_page = 0  # Сброс текущей страницы при получении нового сообщения
     async with aiohttp.ClientSession() as client_session:
         game_price_request = await models.fetch(client_session,
                                                 f"https://bld-team.tech/prices/api/search?query={msg.text}")
         game_price_request = sorted(game_price_request, key=lambda x: len(x['name']))
         print(game_price_request)
+        pagination_list_names = [item['name'] for item in game_price_request]
+        print(pagination_list_names)
 
         game_choice_keyboard = InlineKeyboardBuilder()
-        for game in game_price_request:
-            game_choice_keyboard.add(types.InlineKeyboardButton(
-                text=str(game['name']), callback_data=str(game['id'])))
+
+        # for i, game in enumerate(game_price_request):
+
+        for i in range(current_page * PAGE_SIZE, (current_page + 1) * PAGE_SIZE):
+            if i < len(game_price_request):
+                game_choice_keyboard.add(types.InlineKeyboardButton(
+                    text=str(pagination_list_names[i]), callback_data=str(game_price_request[i]['id'])))
         game_choice_keyboard.adjust(1)
+
+        # if len(game_price_request) > PAGE_SIZE:
+        #     game_choice_keyboard.row(
+        #         types.InlineKeyboardButton(text="<<", callback_data="prev_page"),
+        #         types.InlineKeyboardButton(text=">>", callback_data="next_page")
+        #     )
+
+        if len(game_price_request) > PAGE_SIZE:
+            if current_page > 0:
+                game_choice_keyboard.add(types.InlineKeyboardButton(text="⏪", callback_data="prev_page"))
+            if (current_page + 1) * PAGE_SIZE < len(game_price_request):
+                game_choice_keyboard.add(types.InlineKeyboardButton(text="⏩", callback_data="next_page"))
+
+        game_choice_keyboard = InlineKeyboardBuilder()
+        game_choice_keyboard.add(*buttons)
+        game_choice_keyboard.adjust(1)
+
         await msg.answer("<b>🕹️ Выберите нужную для вас игру:</b>", reply_markup=game_choice_keyboard.as_markup())
 
 
 @router.callback_query()
 async def callback_handler(callback_query: types.CallbackQuery):
-    if callback_query.data.startswith("subscribe"):
+    global current_page
+
+    global current_page
+    if callback_query.data == "prev_page":
+        if current_page > 0:
+            current_page -= 1
+        await update_message(callback_query.message)
+    elif callback_query.data == "next_page":
+        current_page += 1
+        await update_message(callback_query.message)
+
+    elif callback_query.data.startswith("subscribe"):
         await callback_subscribe_handler(callback_query)
+
     else:
         game_id = callback_query.data
         chat_id = callback_query.from_user.id
@@ -73,6 +111,34 @@ async def callback_handler(callback_query: types.CallbackQuery):
             except aiohttp.ContentTypeError:
                 await callback_query.message.answer("❌ <b>Произошла ошибка при получении данных ❌\n"
                                                     "Скорее всего игра недоступна в вашем регионе!</b> 😭")
+
+
+async def update_message(msg: Message):
+    global current_page, game_price_request
+    pagination_list_names = [item['name'] for item in game_price_request]
+    print(pagination_list_names)
+
+    game_choice_keyboard = InlineKeyboardBuilder()
+    for i in range(current_page * PAGE_SIZE, (current_page + 1) * PAGE_SIZE):
+        if i < len(game_price_request):
+            game_choice_keyboard.add(types.InlineKeyboardButton(
+                text=str(pagination_list_names[i]), callback_data=str(game_price_request[i]['id'])))
+    game_choice_keyboard.adjust(1)
+
+    # Добавьте кнопки для навигации по страницам, если есть несколько страниц
+    # if len(game_price_request) > PAGE_SIZE:
+    #     game_choice_keyboard.row(
+    #         types.InlineKeyboardButton(text="⏪", callback_data="prev_page"),
+    #         types.InlineKeyboardButton(text="⏩", callback_data="next_page")
+    #     )
+
+    if len(game_price_request) > PAGE_SIZE:
+        if current_page > 0:
+            game_choice_keyboard.add(types.InlineKeyboardButton(text="⏪", callback_data="prev_page"))
+        if (current_page + 1) * PAGE_SIZE < len(game_price_request):
+            game_choice_keyboard.add(types.InlineKeyboardButton(text="⏩", callback_data="next_page"))
+
+    await msg.edit_text("<b>🕹️ Выберите нужную для вас игру:</b>", reply_markup=game_choice_keyboard.as_markup())
 
 
 @router.callback_query()

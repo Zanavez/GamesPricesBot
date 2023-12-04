@@ -58,5 +58,5 @@ async def reply_with_websockets(chat_id, data):
     for game in data:
         update_message_text += f"<b>Игра: <u>{game['name']}</u></b>\n"
         for market in game['markets']:
-            update_message_text += f"<b>Маркетплейс: {market['name']}, Цена: {market['price']} {market['currency']}</b>\n"
+            update_message_text += f"<b>Маркетплейс: {market['name']}, Цена: {'{:.2f}'.format(round(market['price'] / 100, 2))} {market['currency']}</b>\n"
     asyncio.run(await bot.send_message(chat_id, update_message_text))
