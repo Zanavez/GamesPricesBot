@@ -4,16 +4,18 @@ from aiogram import types, F, Router
 from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.filters import Command
 import aiohttp
+
 import text
 import models
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+
+from bot import event_loop
 
 router = Router()
 
 
 @router.message(Command("start"))
 async def start_handler(msg: Message):
-    await models.connect_to_server(msg.from_user.id)
     await msg.answer(text.hello_text_message.format(username=msg.from_user.first_name))
 
 
@@ -88,6 +90,7 @@ async def callback_subscribe_handler(callback_query: types.CallbackQuery):
             if str(callback_query.from_user.id) not in file.read():
                 with open('user_ids.txt', 'a') as file_append:
                     file_append.write(str(callback_query.from_user.id) + '\n')
+                    asyncio.Task(models.connect_to_server(chat_id=str(callback_query.from_user.id)))
 
     except aiohttp.ClientError or json.JSONDecodeError as error:
         print(f"Отловлена ошибка: {error}")
@@ -96,17 +99,3 @@ async def callback_subscribe_handler(callback_query: types.CallbackQuery):
     finally:
         await callback_query.answer()
 
-
-@router.message()
-async def update_user_message(msg: Message):
-    async with aiohttp.ClientSession() as client_session:
-        with open('user_ids.txt', 'r') as file:
-            if str(msg.from_user.id) in file.read():
-                update_user_game_list = await models.connect_to_server(msg.from_user.id)
-                if update_user_game_list:
-                    update_message_text = "🕰️ Обновлённый список ваших товаров: \n"
-                    for game in update_user_game_list:
-                        update_message_text += f"<b>Игра: <u>{game['name']}</u></b>\n"
-                        for market in game['markets']:
-                            update_message_text += f"<b>Маркетплейс: {market['name']}, Цена: {market['price']} {market['currency']}</b>\n"
-                        await msg.answer(update_message_text)

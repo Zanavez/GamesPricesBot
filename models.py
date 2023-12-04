@@ -1,6 +1,14 @@
+import asyncio
+
 import aiohttp
 import json
 import websockets
+import ssl
+from bot import bot
+
+ssl_context = ssl.SSLContext()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
 
 
 async def fetch(session, url):
@@ -29,6 +37,26 @@ async def post_request(chat_id, game_id):
 
 
 async def connect_to_server(chat_id):
-    async with websockets.connect(f"wss://bld-team.tech/prices/api/ws?chatId={chat_id}") as websocket:
+    print(f"run {chat_id}")
+    async with websockets.connect(f"wss://bld-team.tech/prices/api/ws?chatId={chat_id}", ssl=ssl_context) as websocket:
+        task = asyncio.create_task(connect(chat_id, websocket))
+        await task
+
+
+async def connect(chat_id, websocket):
+    while True:
         response = await websocket.recv()
-        print(f"Received: {response}")
+        try:
+            games = json.loads(response)
+            await reply_with_websockets(chat_id, games)
+        except Exception as e:
+            print(f"Received: {response}, Error: {e}")
+
+
+async def reply_with_websockets(chat_id, data):
+    update_message_text = "🕰️ Обновлённый список ваших товаров: \n"
+    for game in data:
+        update_message_text += f"<b>Игра: <u>{game['name']}</u></b>\n"
+        for market in game['markets']:
+            update_message_text += f"<b>Маркетплейс: {market['name']}, Цена: {market['price']} {market['currency']}</b>\n"
+    asyncio.run(await bot.send_message(chat_id, update_message_text))
