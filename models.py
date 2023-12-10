@@ -5,6 +5,7 @@ import json
 import websockets
 import ssl
 from bot import bot
+from aiogram.enums import ParseMode
 
 ssl_context = ssl.SSLContext()
 ssl_context.check_hostname = False
@@ -54,9 +55,9 @@ async def connect(chat_id, websocket):
 
 
 async def reply_with_websockets(chat_id, data):
-    update_message_text = "🕰️ Обновлённый список ваших товаров: \n"
+    update_message_text = "<b>🕰️ Обновлённый список ваших товаров:</b> \n\n"
     for game in data:
         update_message_text += f"<b>Игра: <u>{game['name']}</u></b>\n"
         for market in game['markets']:
-            update_message_text += f"<b>Маркетплейс: {market['name']}, Цена: {'{:.2f}'.format(round(market['price'] / 100, 2))} {market['currency']}</b>\n"
-    asyncio.run(await bot.send_message(chat_id, update_message_text))
+            update_message_text += f"<b>\t\t\t\t\t\t🛒\tМаркетплейс «{market['name']}», Цена: {'{:.2f}'.format(round(market['price'] / 100, 2))} {market['currency']}</b>\n"
+    asyncio.run(await bot.send_message(chat_id, update_message_text, parse_mode=ParseMode.HTML))
