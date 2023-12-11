@@ -3,8 +3,10 @@ import json
 from aiogram import types, F, Router
 from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.filters import Command
+from aiogram.utils.media_group import MediaGroupBuilder
 import aiohttp
 
+import bot
 import text
 import models
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -69,6 +71,12 @@ async def callback_handler(callback_query: types.CallbackQuery):
     elif callback_query.data.startswith("subscribe"):
         await callback_subscribe_handler(callback_query)
 
+    elif callback_query.data.startswith("screenshots"):
+        await callback_screenshots_handler(callback_query)
+
+    elif callback_query.data.startswith("requirements"):
+        await callback_requirements_handler(callback_query)
+
     else:
         game_id = callback_query.data
         chat_id = callback_query.from_user.id
@@ -84,20 +92,28 @@ async def callback_handler(callback_query: types.CallbackQuery):
                         prices_user_message = "<b>" + prices_user_message.format(
                             game_name=game_data[
                                 'name']) + "</b>" + (
-                                                  f"\t\t\t\t\t\t🛒<b>Маркетплейс «{market['name']}»: {'{:.2f}'.format(round(market['price'] / 100, 2))}"
-                                                  f"{market['currency']}\n</b>")
+                                                  f"\t\t\t🛒<b>Маркетплейс «{market['name']}»: <a href=\"{market['link']}\">{'{:.2f}'.format(round(market['price'] / 100, 2))}"
+                                                  f"{market['currency']}</a>\n</b>")
                     else:
                         prices_user_message = "<b>" + prices_user_message.format(
-                            game_name=game_data['name']) + "</b>" + f"\t\t\t\t\t\t🛒 <b>Маркетплейс «{market['name']}»: {'Бесплатно'}\n </b>"
+                            game_name=game_data[
+                                'name']) + "</b>" + f"\t\t\t\t🛒 <b>Маркетплейс «{market['name']}»: <a href=\"{market['link']}\">{'Бесплатно'}\n</a></b>"
+
+                print(len('||'.join(game_data['screenshots'][::5]).encode('utf-8')))
 
                 subscription_on = [
+                    [InlineKeyboardButton(text="🖼️ Скриншоты",
+                                          callback_data=f"screenshots:{game_id}"), ],
+                    [InlineKeyboardButton(text="🖥️ Системные требовния",
+                                          callback_data=f"requirements:{game_id}"), ],
                     [InlineKeyboardButton(text="✉️ Подписаться на уведомления!",
-                                          callback_data=f"subscribe:{str(game_id)}")],
+                                          callback_data=f"subscribe:{game_id}")]
                 ]
 
                 subscription_button = InlineKeyboardMarkup(inline_keyboard=subscription_on)
 
-                await callback_query.message.answer(prices_user_message, reply_markup=subscription_button)
+                await callback_query.message.answer(prices_user_message, reply_markup=subscription_button,
+                                                    disable_web_page_preview=True)
                 await callback_query.answer()
 
             except aiohttp.ContentTypeError:
@@ -157,3 +173,46 @@ async def callback_subscribe_handler(callback_query: types.CallbackQuery):
     finally:
         await callback_query.answer()
 
+
+@router.callback_query()
+async def callback_screenshots_handler(callback_query: types.CallbackQuery):
+    game_id = callback_query.data.lstrip("screenshots:")
+    try:
+        screenshots_data = await models.get_request(game_id=game_id)
+        print(screenshots_data[0]['screenshots'])
+        screenshots_data = screenshots_data[0]['screenshots'][0:10]
+        print(screenshots_data)
+        media_group = MediaGroupBuilder()
+        for screenshot in screenshots_data:
+            media_group.add_photo(media=screenshot)
+        await bot.bot.send_media_group(chat_id=callback_query.message.chat.id, media=media_group.build())
+    except aiohttp.ClientError or json.JSONDecodeError as error:
+        print(f"Отловлена ошибка: {error}")
+        await callback_query.message.answer("<b>Произошла ошибка при отправке скриншотов! ❌</b>")
+    finally:
+        await callback_query.answer()
+
+
+@router.callback_query()
+async def callback_requirements_handler(callback_query: types.CallbackQuery):
+    def format_requirements(requirements: str) -> str:
+        return requirements.replace('<br>', '\n').replace('<ul class=\"bb_ul\">', '').replace('</ul>', '').replace(
+            '<li>', '\t• ').replace('</li>', '').replace('OS', 'Операционная система').replace(
+            'Processor', 'Процессор').replace('Graphics', 'Видеокарта').replace(
+            'Memory', 'Оперативная память').replace('Storage', 'Место на диске').replace(
+            'Minimum', 'Минимальные').replace('Recommended', 'Рекомендованные').replace(
+            'Additional Notes','Дополнительно')
+
+    game_id = callback_query.data.lstrip("requirements:")
+    try:
+        requirements_data = await models.get_request(game_id=game_id)
+        requirements_data = requirements_data[0]['requirements']
+        await callback_query.message.answer("\n".join([
+            format_requirements(requirements_data['minimum']),
+            format_requirements(requirements_data['recommended'])
+        ]))
+    except aiohttp.ClientError or json.JSONDecodeError as error:
+        print(f"Отловлена ошибка: {error}")
+        await callback_query.message.answer("<b>Произошла ошибка при отправке скриншотов! ❌</b>")
+    finally:
+        await callback_query.answer()
