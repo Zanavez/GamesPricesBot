@@ -201,7 +201,7 @@ async def callback_requirements_handler(callback_query: types.CallbackQuery):
             'Processor', 'Процессор').replace('Graphics', 'Видеокарта').replace(
             'Memory', 'Оперативная память').replace('Storage', 'Место на диске').replace(
             'Minimum', 'Минимальные').replace('Recommended', 'Рекомендованные').replace(
-            'Additional Notes','Дополнительно')
+            'Additional Notes', 'Дополнительно')
 
     game_id = callback_query.data.lstrip("requirements:")
     try:
