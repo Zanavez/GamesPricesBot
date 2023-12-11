@@ -99,8 +99,6 @@ async def callback_handler(callback_query: types.CallbackQuery):
                             game_name=game_data[
                                 'name']) + "</b>" + f"\t\t\t\t🛒 <b>Маркетплейс «{market['name']}»: <a href=\"{market['link']}\">{'Бесплатно'}\n</a></b>"
 
-                print(len('||'.join(game_data['screenshots'][::5]).encode('utf-8')))
-
                 subscription_on = [
                     [InlineKeyboardButton(text="🖼️ Скриншоты",
                                           callback_data=f"screenshots:{game_id}"), ],
@@ -112,8 +110,7 @@ async def callback_handler(callback_query: types.CallbackQuery):
 
                 subscription_button = InlineKeyboardMarkup(inline_keyboard=subscription_on)
 
-                await callback_query.message.answer(prices_user_message, reply_markup=subscription_button,
-                                                    disable_web_page_preview=True)
+                await bot.bot.send_photo(chat_id=callback_query.message.chat.id, photo=game_data['poster'], caption = prices_user_message, reply_markup=subscription_button)
                 await callback_query.answer()
 
             except aiohttp.ContentTypeError:
