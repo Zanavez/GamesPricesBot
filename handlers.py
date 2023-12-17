@@ -110,7 +110,8 @@ async def callback_handler(callback_query: types.CallbackQuery):
 
                 subscription_button = InlineKeyboardMarkup(inline_keyboard=subscription_on)
 
-                await bot.bot.send_photo(chat_id=callback_query.message.chat.id, photo=game_data['poster'], caption = prices_user_message, reply_markup=subscription_button)
+                await bot.bot.send_photo(chat_id=callback_query.message.chat.id, photo=game_data['poster'],
+                                         caption=prices_user_message, reply_markup=subscription_button)
                 await callback_query.answer()
 
             except aiohttp.ContentTypeError:
@@ -192,22 +193,34 @@ async def callback_screenshots_handler(callback_query: types.CallbackQuery):
 
 @router.callback_query()
 async def callback_requirements_handler(callback_query: types.CallbackQuery):
-    def format_requirements(requirements: str) -> str:
-        return requirements.replace('<br>', '\n').replace('<ul class=\"bb_ul\">', '').replace('</ul>', '').replace(
+    def format_requirements(r: str) -> str:
+        return r.replace('<br>', '\n').replace('<ul class=\"bb_ul\">', '').replace('</ul>', '').replace(
             '<li>', '\t• ').replace('</li>', '').replace('OS', 'Операционная система').replace(
             'Processor', 'Процессор').replace('Graphics', 'Видеокарта').replace(
             'Memory', 'Оперативная память').replace('Storage', 'Место на диске').replace(
             'Minimum', 'Минимальные').replace('Recommended', 'Рекомендованные').replace(
-            'Additional Notes', 'Дополнительно')
+            'Additional Notes', 'Дополнительно').replace('Network', 'Сеть').replace(
+            'Sound Card', 'Звуковая карта'
+        )
 
     game_id = callback_query.data.lstrip("requirements:")
     try:
         requirements_data = await models.get_request(game_id=game_id)
         requirements_data = requirements_data[0]['requirements']
-        await callback_query.message.answer("\n".join([
-            format_requirements(requirements_data['minimum']),
-            format_requirements(requirements_data['recommended'])
-        ]))
+        requirements = []
+        if requirements_data['minimum'] is not None:
+            requirements.append(
+                format_requirements(requirements_data['minimum'])
+            )
+        if requirements_data['recommended'] is not None:
+            requirements.append(
+                format_requirements(requirements_data['recommended'])
+            )
+
+        await callback_query.message.answer(
+            "\n".join(requirements) if (len(requirements) != 0) else "Системные требования не найдены"
+        )
+
     except aiohttp.ClientError or json.JSONDecodeError as error:
         print(f"Отловлена ошибка: {error}")
         await callback_query.message.answer("<b>Произошла ошибка при отправке скриншотов! ❌</b>")
