@@ -19,9 +19,12 @@ async def fetch(session, url):
 
 async def get_request(game_id):
     async with aiohttp.ClientSession() as session:
-        response = await session.get(url=f"https://bld-team.tech/prices/api/search/{game_id}")
-        text_response = await response.json()
-        return text_response
+        try:
+            response = await session.get(url=f"https://bld-team.tech/prices/api/search/{game_id}")
+            text_response = await response.json()
+            return text_response
+        except Exception as e:
+            raise e
 
 
 async def post_request(chat_id, game_id):

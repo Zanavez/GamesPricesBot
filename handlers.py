@@ -114,7 +114,8 @@ async def callback_handler(callback_query: types.CallbackQuery):
                                          caption=prices_user_message, reply_markup=subscription_button)
                 await callback_query.answer()
 
-            except aiohttp.ContentTypeError:
+            except aiohttp.ContentTypeError as e:
+                print(e.message)
                 await callback_query.message.answer("❌ <b>Произошла ошибка при получении данных ❌\n"
                                                     "Скорее всего игра недоступна в вашем регионе!</b> 😭")
                 await callback_query.answer()
