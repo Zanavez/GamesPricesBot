@@ -186,7 +186,7 @@ async def callback_screenshots_handler(callback_query: types.CallbackQuery):
             media_group.add_photo(media=screenshot)
         await bot.bot.send_media_group(chat_id=callback_query.message.chat.id, media=media_group.build())
     except aiohttp.ClientError or json.JSONDecodeError as error:
-        print(f"Отловлена ошибка: {error}")
+        print(f"Error received: {error}")
         await callback_query.message.answer("<b>Произошла ошибка при отправке скриншотов! ❌</b>")
     finally:
         await callback_query.answer()
@@ -223,7 +223,7 @@ async def callback_requirements_handler(callback_query: types.CallbackQuery):
         )
 
     except aiohttp.ClientError or json.JSONDecodeError as error:
-        print(f"Отловлена ошибка: {error}")
+        print(f"Error received: {error}")
         await callback_query.message.answer("<b>Произошла ошибка при отправке скриншотов! ❌</b>")
     finally:
         await callback_query.answer()

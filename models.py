@@ -36,7 +36,7 @@ async def post_request(chat_id, game_id):
                                       },
                                       headers={"Content-Type": "application/json"})
         text_response = await response.json()
-        print(text_response)
+        print("Post request for receiving prices finish with next info: " + str(text_response))
         return text_response
 
 
@@ -44,6 +44,7 @@ async def connect_to_server(chat_id):
     print(f"run {chat_id}")
     async with websockets.connect(f"wss://bld-team.tech/prices/api/ws?chatId={chat_id}", ssl=ssl_context) as websocket:
         task = asyncio.create_task(connect(chat_id, websocket))
+        print("Websocket task complete with next info: " + str(task))
         await task
 
 
@@ -52,6 +53,7 @@ async def connect(chat_id, websocket):
         response = await websocket.recv()
         try:
             games = json.loads(response)
+            print("Connect with websockets complete with next info: " + str(games))
             await reply_with_websockets(chat_id, games)
         except Exception as e:
             print(f"Received: {response}, Error: {e}")
@@ -59,6 +61,7 @@ async def connect(chat_id, websocket):
 
 async def reply_with_websockets(chat_id, data):
     update_message_text = "<b>🕰️ Обновлённый список ваших товаров:</b> \n\n"
+    print("Stored data with replying with websockets looks next: " + str(data))
     for game in data:
         update_message_text += f"<b><u>{game['name']}</u></b>\n"
         for market in game['markets']:
