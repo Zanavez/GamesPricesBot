@@ -1,12 +1,12 @@
 import asyncio
 import json
-from aiogram import types, F, Router
+from aiogram import types, Router
 from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.filters import Command
 from aiogram.utils.media_group import MediaGroupBuilder
 import aiohttp
 
-import bot
+import bot+
 import text
 import models
 from aiogram.utils.keyboard import InlineKeyboardBuilder

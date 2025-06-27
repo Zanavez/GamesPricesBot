@@ -7,7 +7,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from handlers import router
 from models import connect_to_server
 
-from bot import bot, event_loop
+from bot import bot
 
 
 async def main():
