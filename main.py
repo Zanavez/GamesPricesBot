@@ -24,6 +24,7 @@ async def connect_with_ids():
     with open("user_ids.txt", "r") as f:
         for line in f.readlines():
             tasks.append(connect_to_server(line))
+    print("Received users id: " + str(tasks))
     await asyncio.gather(*tasks)
 
 
